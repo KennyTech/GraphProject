@@ -8,15 +8,13 @@ import javafx.scene.chart.LineChart;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart.Data;
 import javafx.scene.chart.XYChart.Series;
-import javafx.scene.control.Button;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 
 import net.objecthunter.exp4j.ExpressionBuilder;
@@ -29,8 +27,11 @@ public class Controller {
     @FXML TextField xInput;
     @FXML TextField yInput;
 
-    @FXML
-    Button btn_Add;
+    @FXML ListView graphList;
+    @FXML TextField nameInput;
+
+
+    @FXML Button btn_Add;
 
     //Series = one line graph
     private ObservableList<Series<Float, Float>> seriesList;
@@ -73,7 +74,7 @@ public class Controller {
     public void addEQPoints() {
 
         Series series = new Series<Float, Float>();
-        series.setName(Integer.toString(seriesIndex + 1) + ": GraphName");
+        series.setName(Integer.toString(seriesIndex + 1) + ": " + nameInput.getText());
 
         if (isEmpty(equationInput)) {
             infoBox("Enter an equation to plot the appropriate graph",
@@ -93,6 +94,8 @@ public class Controller {
             seriesList.add(series);
             lineChart.getData().add(series);
             System.out.println("Added graph");
+            graphList.getItems().add(series.getName());
+            selectGraphInList();
         }
 
 
@@ -144,7 +147,7 @@ public class Controller {
 
 
 
-        series.setName(Integer.toString(seriesIndex + 1) + ": GraphName");
+        series.setName(Integer.toString(seriesIndex + 1) + ": " + nameInput.getText());
 
         if (series.getData().add(new Data<Float, Float>(newX, newY))) {
 
@@ -158,6 +161,9 @@ public class Controller {
                 seriesList.add(series);
                 lineChart.getData().add(series);
                 System.out.println("Added graph");
+
+                graphList.getItems().add(series.getName());
+                selectGraphInList();
             }
             else {  //Otherwise change the old one
 
@@ -185,6 +191,8 @@ public class Controller {
 
                     System.out.println("Selected graph " + seriesIndex);
                     lineChart.setTitle("Editing " + series.getName());
+
+                    selectGraphInList();
                 }
             });
         }
@@ -193,6 +201,14 @@ public class Controller {
     //Add a new graph using the input fields
     public void addGraph()
     {
+        //Check if graph name has been created
+        if (nameInput.getText().isEmpty()) {
+
+            infoBox("A graph name needs to be entered in the bottom bar.", "Error Found!", null);
+            return;
+
+        }
+
         btn_Add.setDisable(false);
 
         //Find where the new graph's index will be
@@ -200,17 +216,122 @@ public class Controller {
             seriesIndex++;
 
         addPoint();
+
+    }
+
+    //ListView onClick that simply selects a graph.
+    public void pickGraph()
+    {
+        int graphIndex = graphList.getSelectionModel().getSelectedIndex();
+
+        if (graphIndex < seriesList.size())
+        {
+            seriesIndex = graphIndex;
+        }
+    }
+
+    private void selectGraphInList()
+    {
+
+        //Don't select it if it doesn't exist
+        if (seriesIndex >= graphList.getItems().size()) return;
+
+        //Highlight correct graph on list view
+        graphList.getSelectionModel().select(seriesIndex);
+        graphList.getFocusModel().focus(seriesIndex);
+        graphList.scrollTo(seriesIndex);
+    }
+
+    //Remove selected graph in list
+    public void removeGraph()
+    {
+        int graphIndex = graphList.getSelectionModel().getSelectedIndex();
+
+        if (graphIndex >= graphList.getItems().size() || graphIndex < 0) return;
+
+        System.out.print("Removing: " + graphIndex);
+
+
+        seriesList.remove(graphIndex);
+        lineChart.getData().remove(graphIndex);
+
+        graphList.getItems().remove(graphIndex);
+
+
+        seriesIndex = 0;
+        selectGraphInList();
+    }
+
+    public void renameGraph()
+    {
+        int graphIndex = graphList.getSelectionModel().getSelectedIndex();
+
+        if (graphIndex >= graphList.getItems().size() || graphIndex < 0) return;
+
+
+        //Read name field
+        String  newName = nameInput.getText();
+
+        //Rename list item, series and graph
+        graphList.getItems().set(graphIndex, Integer.toString(graphIndex + 1) + ": " + newName);
+
+        seriesList.get(graphIndex).setName(Integer.toString(graphIndex + 1) + ": " + newName);
+
+    }
+
+    //Duplicate selected graph in list. Doesn't work properly because javafx throws an error whenever the same series is created. Might just remove this...
+    public void duplicateGraph()
+    {
+        int graphIndex = graphList.getSelectionModel().getSelectedIndex();
+
+        System.out.print("Duping: " + graphIndex);
+
+        if (graphIndex >= graphList.getItems().size()) return;
+
+
+
+        Series series = new Series();
+
+
+        series.getData().add(new Data<Float, Float>(0.0f,0.0f));
+
+        series.getData().addAll(seriesList.get(graphIndex).getData());
+
+
+        series.setName(graphList.getItems().get(graphIndex) + " (Copy)");
+
+        seriesIndex=graphIndex + 1;
+
+
+        seriesList.add(series);
+        lineChart.getData().add(series);
+        System.out.println("Added graph");
+
+        graphList.getItems().add(series.getName());
+        selectGraphInList();
+
+
     }
 
 
-    //Field formatter
+    //Field formatter that makes sure x and y input field has no letters, etc.
     private String filterLetters(String text)
     {
 
-        if (!text.matches("\\d{0,7}([\\.]\\d{0,4})?")) {
+        //Check for a format of 0-7 digit numbers along with decimals of 0-8 digits
+        if (!text.matches("\\d{0,7}([\\.]\\d{0,8})?")) {
+
+            //If the above format doesn't match then replace it into the correct form.
+
+            //Easy way to keep negatives
+            if (text.charAt(0) == '-') return "-" + text.replaceAll("[^\\d]", "");
+
+
             return text.replaceAll("[^\\d]", "");
         }
 
         return text;
     }
+
+
 }
