@@ -16,16 +16,23 @@ import javafx.scene.chart.XYChart.Series;
 import javafx.collections.ObservableList;
 
 class ConnectionHandler extends Thread{
-	Socket clientSocket;
+	public Socket clientSocket;
+	public PrintWriter out;
 	
 	public ConnectionHandler(Socket connect){
 		clientSocket = connect;
+		try{
+			out = new PrintWriter(clientSocket.getOutputStream());
+		}catch(IOException e){
+			e.printStackTrace();
+		}
 	}
+	
 	public void run(){		
         int i = 0;
 		 
 		try{
-			PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
+			
 			String line = Integer.toString(Main.connectedClients.size());
 			out.println(line);
 			System.out.println("Line Sent");
@@ -35,13 +42,10 @@ class ConnectionHandler extends Thread{
           InputStreamReader creader = new InputStreamReader(cin);
           BufferedReader cbin = new BufferedReader(creader);
 		  while(true){
-          String cline = null;
-			System.out.println("Listening...");
-          //Wait for client's command
-		  
+          String cline = null;		  
 				if ((cline = cbin.readLine()) != null) {
 					System.out.println(cline);
-					cline = null;
+					Main.sendMessage(clientSocket, cline);
 				}
 			
 		  }
@@ -57,6 +61,7 @@ public class Main{
 	public static ArrayList<Socket> connectedClients = new ArrayList<>();
 	public static ObservableList<Series<Float, Float>> seriesList;
 	
+	private static ArrayList<ConnectionHandler> clientHandlers = new ArrayList<>();
     public static void main(String [] args) {
         try {
             serverSocket = new ServerSocket(8888);
@@ -68,12 +73,12 @@ public class Main{
 
                 clientSocket = serverSocket.accept();
                 if(clientSocket != null){
-					ConnectionHandler ch = new ConnectionHandler(clientSocket);			
+					ConnectionHandler ch = new ConnectionHandler(clientSocket);	
+					clientHandlers.add(ch);					
 					ch.start();
 					
 					connectedClients.add(clientSocket);
 					System.out.println(connectedClients.size());
-					sendMessage(clientSocket);
                 }
 				clientSocket = null;
             }
@@ -82,10 +87,11 @@ public class Main{
         }
     }
 	
-	public static void sendMessage(Socket sender){
-		for(Socket c: connectedClients){
-			if(c != sender){
-					System.out.println("HI");
+	public static void sendMessage(Socket sender, String msg){
+		for(ConnectionHandler c: clientHandlers){
+			if(c.clientSocket != sender){
+					c.out.println(msg);
+					c.out.flush();
 
 			}
 		}
