@@ -29,29 +29,16 @@ class ConnectionHandler extends Thread{
 			String line = Integer.toString(Main.connectedClients.size());
 			out.println(line);
 			System.out.println("Line Sent");
-			out.flush();
-			
-			
-		 
-			if(Main.connectedClients.size() == 1){
-				
-			}
-			else{
-				
-			}
-			
-             
-			 
-			 out.print(line);
-			
+			out.flush(); 			
 			
           InputStream cin = clientSocket.getInputStream();
           InputStreamReader creader = new InputStreamReader(cin);
           BufferedReader cbin = new BufferedReader(creader);
-		  while(i > 0){
+		  while(true){
           String cline = null;
-
+			System.out.println("Listening...");
           //Wait for client's command
+		  
 				if ((cline = cbin.readLine()) != null) {
 					System.out.println(cline);
 					cline = null;

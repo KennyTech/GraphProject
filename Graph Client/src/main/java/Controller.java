@@ -67,7 +67,8 @@ public class Controller extends Thread{
 	
 	//Networking commands
 	private boolean connectedToServer = false;
-	Socket socket; 
+	Socket socket;
+	PrintWriter out;	
 
     public void initialize() {
 
@@ -203,6 +204,12 @@ public class Controller extends Thread{
             graphList.getItems().add(series.getName());
 
             selectGraphInList();
+			
+			if(connectedToServer){
+				
+			out.println("ADQ " + equationInput.getText()); 
+			out.flush();
+			}
         }
 
 
@@ -252,7 +259,7 @@ public class Controller extends Thread{
         //gg
         setGraphName(series, null);
 
-
+		
         if (series.getData().add(new Data<Float, Float>(newX, newY))) {
 
 
@@ -268,15 +275,24 @@ public class Controller extends Thread{
 
                 graphList.getItems().add(series.getName());
                 selectGraphInList();
+				
+				if(connectedToServer){
+					out.println("ADD " + seriesIndex + " " + newX + " " + newY + " " + series.getName()); 
+					out.flush();
+				}
             }
             else {  //Otherwise change the old one
 
                 seriesList.set(seriesIndex, series);
                 System.out.println("Modified graph");
-
+				
+				if(connectedToServer){
+					out.println("ADP " + seriesIndex + " " + newX + " " + newY); 
+					out.flush();
+				}
             }
 
-
+			
             //On click for selecting a graph to be edited (Seems to only work when clicking on a line and not a single node)
             series.getNode().setOnMouseClicked(new EventHandler<MouseEvent>() {
                 @Override
@@ -320,7 +336,8 @@ public class Controller extends Thread{
             seriesIndex++;
 
         addPoint();
-
+		
+		
     }
 
 
@@ -366,6 +383,11 @@ public class Controller extends Thread{
 
         seriesIndex = 0;
         selectGraphInList();
+		
+		if(connectedToServer){
+		out.println("REM " + graphIndex); 
+		out.flush();
+		}
     }
 
     //YOU CAN PLAY AROUND WITH THESE TWO METHODS TO STORE EQUATION NAME IN A CSV FILE
@@ -412,7 +434,11 @@ public class Controller extends Thread{
 
         seriesList.get(graphIndex).setName(Integer.toString(graphIndex + 1) + ": " +
                 newName + printEquationName(equationName));
-
+		
+		if(connectedToServer){
+		out.println("REN " + graphIndex + " " + newName); 
+		out.flush();
+		}
     }
 
     //Duplicate selected graph in list. Doesn't work properly because javafx throws an error whenever the same series is created. Might just remove this...
@@ -445,8 +471,11 @@ public class Controller extends Thread{
 
         graphList.getItems().add(series.getName());
         selectGraphInList();
-
-
+		
+		if(connectedToServer){
+		out.println("DUP " + graphIndex); 
+		out.flush();
+		}
     }
 
 
@@ -488,7 +517,10 @@ public class Controller extends Thread{
 	}
 	
 	public void run(){
+		
+		
 		try{
+		out = new PrintWriter(socket.getOutputStream());
 		InputStream in = socket.getInputStream();
 		BufferedReader bin = new BufferedReader(new InputStreamReader(in));
 		String line = null;
@@ -497,16 +529,14 @@ public class Controller extends Thread{
 			System.out.println("Waiting...");
 		}
 		
-		if(Integer.parseInt(line) == 1){
-			
-		}else{
-			
-		}
+		System.out.println(line);
+		
 		
 		
 		}
 		catch(IOException e){
 			System.out.println("IOException");
+			connectedToServer = false;
 		}
 	}
 }
