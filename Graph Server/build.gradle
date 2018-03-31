@@ -1,0 +1,18 @@
+apply plugin: 'java'
+apply plugin: 'application'
+
+repositories{
+mavenCentral()
+}
+
+dependencies {
+  compile group: 'org.json', name: 'json', version: '20180130'
+  compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version:'2.9.4'
+  //compile files("C:/Dev/jdk1.8.0_51/lib/tools.jar")
+}
+
+dependencies{
+	compile "commons-validator:commons-validator:1.6"
+}
+
+mainClassName = 'Main'
