@@ -1,7 +1,10 @@
 //package sample;          ----you might want to uncomment this if you're using Intellij
 
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.scene.chart.LineChart;
@@ -12,13 +15,17 @@ import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 import javafx.scene.control.Alert.AlertType;
 
+import javafx.util.Duration;
 import net.objecthunter.exp4j.ExpressionBuilder;
 import net.objecthunter.exp4j.Expression;
+
+import org.gillius.jfxutils.chart.JFXChartUtil;
+
+import javax.xml.soap.Text;
 
 
 public class Controller {
@@ -30,20 +37,89 @@ public class Controller {
     @FXML ListView graphList;
     @FXML TextField nameInput;
 
+    @FXML
+    private NumberAxis xAxis ;
+
+    @FXML
+    private NumberAxis yAxis ;
+
 
     @FXML Button btn_Add;
+    @FXML Button btn_UP;
+    @FXML Button btn_DOWN;
+    @FXML Button btn_LEFT;
+    @FXML Button btn_RIGHT;
 
     //Series = one line graph
     private ObservableList<Series<Float, Float>> seriesList;
+
     private int seriesIndex = -1;
+    private int xAxisUpperBound = 25;
+    private int xAxisLowerBound = -25;
+    private int yAxisUpperBound = 25;
+    private int yAxisLowerBound = -25;
+    private final int traverseRate = 5;
+
+
 
     public void initialize() {
 
         seriesList = FXCollections.observableArrayList();
+        //x-axis and y-axis early range
+        setLineChartConditions();
+        //this is for traversing through graph
+        timeline.setCycleCount(Timeline.INDEFINITE);
+        timeline.play();
+
+    }
+
+    Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(0.1), (ActionEvent event) -> {
+        // these will be called every 0.1 second
+        //apparently having a timer is the best way to do on button press
+        if (btn_UP.isPressed()) traverseUP();
+        if (btn_DOWN.isPressed()) traverseDOWN();
+        if (btn_LEFT.isPressed()) traverseLEFT();
+        if (btn_RIGHT.isPressed()) traverseRIGHT();
+    }));
+    public void traverseUP() {
+        yAxis.setUpperBound(yAxisUpperBound+=traverseRate);
+        yAxis.setLowerBound(yAxisLowerBound+=traverseRate);
+    }
+    public void traverseDOWN() {
+        yAxis.setUpperBound(yAxisUpperBound-=traverseRate);
+        yAxis.setLowerBound(yAxisLowerBound-=traverseRate);
+    }
+    public void traverseLEFT() {
+        xAxis.setUpperBound(xAxisUpperBound-=traverseRate);
+        xAxis.setLowerBound(xAxisLowerBound-=traverseRate);
+    }
+    public void traverseRIGHT() {
+        xAxis.setUpperBound(xAxisUpperBound+=traverseRate);
+        xAxis.setLowerBound(xAxisLowerBound+=traverseRate);
+    }
+
+
+    public void setLineChartConditions() {
+        xAxis.setAutoRanging(false);
+        xAxis.setLowerBound(-25);
+        xAxis.setUpperBound(25);
+        xAxis.setTickUnit(1);
+
+        yAxis.setAutoRanging(false);
+        yAxis.setLowerBound(-25);
+        yAxis.setUpperBound(25);
+        yAxis.setTickUnit(1);
+
+        //this removes dots
+        lineChart.setCreateSymbols(false);
+        //enables zooming
+        JFXChartUtil.setupZooming(lineChart);
+
     }
     //alert message for errors
     public void infoBox(String infoMessage, String titleBar, String headerMessage)
     {
+        xAxis.setUpperBound(50);
         Alert alert = new Alert(AlertType.INFORMATION);
         alert.setTitle(titleBar);
         alert.setHeaderText(headerMessage);
@@ -53,19 +129,39 @@ public class Controller {
 
     public boolean isEmpty(TextField input) {return input.getText().trim().isEmpty();}
 
+    public String checkIfEquation(String equation) {
+        if (equation != null)
+            return ": f(x)= "+equation;
+        return "";
+    }
+    public void setGraphName(Series series, String equation) {
+        String s = null;
+        if (nameInputStrip().isEmpty())
+            series.setName(Integer.toString(seriesIndex + 1) + ": " + "[untitled]" +checkIfEquation(equation));
+
+        else
+            series.setName(Integer.toString(seriesIndex + 1) + ": " + nameInputStrip() +checkIfEquation(equation));
+    }
+
+
+
     //fills x and y coordinates into a map
     public Map<Float, Float> fillCoordinates(String rawInput) {
 
-        int graphRange =50; //this changes how far the graph would plot/grow
+        float graphRange =25.0f; //this changes how far the graph would plot/grow
         Map<Float, Float> coordMap = new LinkedHashMap<Float, Float>();
 
         //some methods from an external library which parse equation string and evaluates
         Expression e = new ExpressionBuilder(rawInput).variables("x")
                 .build();
+
         //fill x and y
-        for (int i=0;i<graphRange;i++){
-            e.setVariable("x", i);
-            coordMap.put((float)i, (float)e.evaluate());
+        for (float f=(-25.0f);f<graphRange;f+=0.02){
+
+            //this works fine except for any discontinuous graphs (ex: 1/x)
+            e.setVariable("x", f);
+            coordMap.put((float)f, (float)e.evaluate());
+
         }
 
         return coordMap;
@@ -74,7 +170,6 @@ public class Controller {
     public void addEQPoints() {
 
         Series series = new Series<Float, Float>();
-        series.setName(Integer.toString(seriesIndex + 1) + ": " + nameInput.getText());
 
         if (isEmpty(equationInput)) {
             infoBox("Enter an equation to plot the appropriate graph",
@@ -83,7 +178,7 @@ public class Controller {
             return ;
         }
         else {
-
+            setGraphName(series, equationInput.getText());
             Map<Float, Float> getCoordinates = fillCoordinates(equationInput.getText());
             System.out.println(getCoordinates);
 
@@ -93,8 +188,13 @@ public class Controller {
 
             seriesList.add(series);
             lineChart.getData().add(series);
+
+
+            //System.out.println(lineChart.);
+            //lineChart.z
             System.out.println("Added graph");
             graphList.getItems().add(series.getName());
+
             selectGraphInList();
         }
 
@@ -109,9 +209,6 @@ public class Controller {
 
     //Add a point onto a graph (series). Button can't be clicked until Add Graph is pressed
     public void addPoint() {
-
-
-
 
         //Make input use numbers only
         xInput.setText(filterLetters(xInput.getText()));
@@ -145,9 +242,9 @@ public class Controller {
             newSeries = false;
         }
 
+        //gg
+        setGraphName(series, null);
 
-
-        series.setName(Integer.toString(seriesIndex + 1) + ": " + nameInput.getText());
 
         if (series.getData().add(new Data<Float, Float>(newX, newY))) {
 
@@ -202,7 +299,7 @@ public class Controller {
     public void addGraph()
     {
         //Check if graph name has been created
-        if (nameInput.getText().isEmpty()) {
+        if (nameInputStrip().isEmpty()) {
 
             infoBox("A graph name needs to be entered in the bottom bar.", "Error Found!", null);
             return;
@@ -218,6 +315,8 @@ public class Controller {
         addPoint();
 
     }
+
+
 
     //ListView onClick that simply selects a graph.
     public void pickGraph()
@@ -262,20 +361,50 @@ public class Controller {
         selectGraphInList();
     }
 
+    //YOU CAN PLAY AROUND WITH THESE TWO METHODS TO STORE EQUATION NAME IN A CSV FILE
+
+    public void graphList() {
+        for (int i=0; i<seriesList.size(); i++)
+            //this splits the name into an array by delimiter
+            //and if the name doesn't contain an equation it would have a size of 2
+            System.out.println(isEquation(seriesList.get(i).getName().split(":")));
+    }
+    public Boolean isEquation(String[] eqName) {
+        return eqName.length == 3;
+    }
+
+    // ******************************************************************************
+
+    //this will eliminate crash if user enters ":" in name field
+    public String nameInputStrip() {
+        return nameInput.getText().replace(":", "");
+    }
+    public String printEquationName(String[] eqName) {
+        //an equation would have a list of 3 items
+        if (isEquation(eqName))
+            return ": "+eqName[2]; //this is the equation
+        else return ""; //return empty string if it's not an equation
+    }
     public void renameGraph()
     {
         int graphIndex = graphList.getSelectionModel().getSelectedIndex();
+
+        //this separates equation name by ":" into a list so you can know if it's an equation graph
+        //Fixed the bug where if someone enters ":" into nameInput then it wouldn't split right- nameInputStrip()
+        String[] equationName = graphList.getSelectionModel().getSelectedItem().toString().split(":");
 
         if (graphIndex >= graphList.getItems().size() || graphIndex < 0) return;
 
 
         //Read name field
-        String  newName = nameInput.getText();
+        String  newName = nameInputStrip();
 
         //Rename list item, series and graph
-        graphList.getItems().set(graphIndex, Integer.toString(graphIndex + 1) + ": " + newName);
+        graphList.getItems().set(graphIndex, Integer.toString(graphIndex + 1) + ": " +
+                newName + printEquationName(equationName));
 
-        seriesList.get(graphIndex).setName(Integer.toString(graphIndex + 1) + ": " + newName);
+        seriesList.get(graphIndex).setName(Integer.toString(graphIndex + 1) + ": " +
+                newName + printEquationName(equationName));
 
     }
 

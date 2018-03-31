@@ -9,14 +9,15 @@ repositories {
 sourceSets {
   main {
     resources {
-        srcDirs = ["src/main/java"]
-        includes = ["**/*.fxml","**/*.css"]
+        srcDirs = ["src/main/java", "src/main/resources"]
+        includes = ["**/*.fxml","**/*.css","**/*.jpg","**/*.png"]
     }
   }
 }
 
 dependencies {
     compile group: 'net.objecthunter', name: 'exp4j', version: '0.4.7'
+    compile group: 'org.gillius', name: 'jfxutils', version: '1.0'
     //compile files("C:/Dev/jdk1.8.0_51/lib/tools.jar")
 }
 
