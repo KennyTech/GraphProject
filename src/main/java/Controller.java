@@ -12,6 +12,9 @@ import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart.Data;
 import javafx.scene.chart.XYChart.Series;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.input.MouseEvent;
 
 import java.util.LinkedHashMap;
@@ -29,40 +32,23 @@ import javax.xml.soap.Text;
 
 
 public class Controller {
+
     @FXML LineChart<Float, Float> lineChart;
-    @FXML TextField equationInput;
-    @FXML TextField xInput;
-    @FXML TextField yInput;
-
     @FXML ListView graphList;
-    @FXML TextField nameInput;
-
-    @FXML
-    private NumberAxis xAxis ;
-
-    @FXML
-    private NumberAxis yAxis ;
-
-
-    @FXML Button btn_Add;
-    @FXML Button btn_UP;
-    @FXML Button btn_DOWN;
-    @FXML Button btn_LEFT;
-    @FXML Button btn_RIGHT;
+    @FXML TextField equationInput,xInput, yInput, nameInput;
+    @FXML private NumberAxis xAxis, yAxis ;
+    @FXML Button btn_Add, btn_Remove, btn_Rename, btn_UP, btn_DOWN, btn_LEFT, btn_RIGHT;
 
     //Series = one line graph
     private ObservableList<Series<Float, Float>> seriesList;
 
-    private int seriesIndex = -1;
-    private int xAxisUpperBound = 25;
-    private int xAxisLowerBound = -25;
-    private int yAxisUpperBound = 25;
-    private int yAxisLowerBound = -25;
+    private int seriesIndex = -1, xAxisUpperBound = 25, xAxisLowerBound = -25,
+            yAxisUpperBound = 25, yAxisLowerBound = -25;
     private final int traverseRate = 5;
 
 
-
     public void initialize() {
+
 
         seriesList = FXCollections.observableArrayList();
         //x-axis and y-axis early range
@@ -73,13 +59,44 @@ public class Controller {
 
     }
 
+    public void onKeyPress(Button button, KeyCode keyCode) {
+        button.getScene().getAccelerators().put(
+                //you can use CTRL+ arrows or just arrows
+                new KeyCodeCombination(keyCode, KeyCombination.SHORTCUT_ANY),
+                new Runnable() {
+                    @Override public void run() {
+                        if (keyCode.equals(KeyCode.UP))
+                            traverseUP();
+                        else if (keyCode.equals(KeyCode.DOWN))
+                            traverseDOWN();
+                        else if (keyCode.equals(KeyCode.LEFT))
+                            traverseLEFT();
+                        else if (keyCode.equals(KeyCode.RIGHT))
+                            traverseRIGHT();
+                        else if (keyCode.equals(KeyCode.ESCAPE))
+                            setLineChartConditions();
+                    }
+                }
+        );
+    }
+
     Timeline timeline = new Timeline(new KeyFrame(Duration.seconds(0.1), (ActionEvent event) -> {
         // these will be called every 0.1 second
         //apparently having a timer is the best way to do on button press
-        if (btn_UP.isPressed()) traverseUP();
-        if (btn_DOWN.isPressed()) traverseDOWN();
-        if (btn_LEFT.isPressed()) traverseLEFT();
-        if (btn_RIGHT.isPressed()) traverseRIGHT();
+        if (!lineChart.getData().isEmpty()) {
+            //for key presses
+            onKeyPress(btn_UP, KeyCode.UP);
+            onKeyPress(btn_DOWN, KeyCode.DOWN);
+            onKeyPress(btn_LEFT, KeyCode.LEFT);
+            onKeyPress(btn_RIGHT, KeyCode.RIGHT);
+            //onKeyPress(btn_ESCAPE, KeyCode.ESCAPE); for resetting zoom, maybe can add this on edit menu
+
+            //for button presses
+            if (btn_UP.isPressed()) traverseUP();
+            if (btn_DOWN.isPressed()) traverseDOWN();
+            if (btn_LEFT.isPressed()) traverseLEFT();
+            if (btn_RIGHT.isPressed()) traverseRIGHT();
+        }
     }));
     public void traverseUP() {
         yAxis.setUpperBound(yAxisUpperBound+=traverseRate);
@@ -101,13 +118,13 @@ public class Controller {
 
     public void setLineChartConditions() {
         xAxis.setAutoRanging(false);
-        xAxis.setLowerBound(-25);
-        xAxis.setUpperBound(25);
+        xAxis.setLowerBound(yAxisLowerBound);
+        xAxis.setUpperBound(xAxisUpperBound);
         xAxis.setTickUnit(1);
 
         yAxis.setAutoRanging(false);
-        yAxis.setLowerBound(-25);
-        yAxis.setUpperBound(25);
+        yAxis.setLowerBound(yAxisLowerBound);
+        yAxis.setUpperBound(yAxisUpperBound);
         yAxis.setTickUnit(1);
 
         //this removes dots
@@ -119,7 +136,6 @@ public class Controller {
     //alert message for errors
     public void infoBox(String infoMessage, String titleBar, String headerMessage)
     {
-        xAxis.setUpperBound(50);
         Alert alert = new Alert(AlertType.INFORMATION);
         alert.setTitle(titleBar);
         alert.setHeaderText(headerMessage);
@@ -148,7 +164,7 @@ public class Controller {
     //fills x and y coordinates into a map
     public Map<Float, Float> fillCoordinates(String rawInput) {
 
-        float graphRange =25.0f; //this changes how far the graph would plot/grow
+        //float graphRange = xAxisUpperBound; //this changes how far the graph would plot/grow
         Map<Float, Float> coordMap = new LinkedHashMap<Float, Float>();
 
         //some methods from an external library which parse equation string and evaluates
@@ -156,7 +172,7 @@ public class Controller {
                 .build();
 
         //fill x and y
-        for (float f=(-25.0f);f<graphRange;f+=0.02){
+        for (float f=xAxisLowerBound-75;f<xAxisUpperBound+75;f+=0.075){
 
             //this works fine except for any discontinuous graphs (ex: 1/x)
             e.setVariable("x", f);
@@ -178,6 +194,7 @@ public class Controller {
             return ;
         }
         else {
+            btn_Remove.setDisable(false);
             setGraphName(series, equationInput.getText());
             Map<Float, Float> getCoordinates = fillCoordinates(equationInput.getText());
             System.out.println(getCoordinates);
@@ -205,6 +222,7 @@ public class Controller {
             seriesIndex++;
 
         addEQPoints();
+
     }
 
     //Add a point onto a graph (series). Button can't be clicked until Add Graph is pressed
@@ -224,6 +242,8 @@ public class Controller {
             return;
         }
 
+        btn_Remove.setDisable(false);
+        btn_Add.setDisable(false);
         float newX = Float.parseFloat(xInput.getText());
         float newY = Float.parseFloat(yInput.getText());
 
@@ -299,20 +319,18 @@ public class Controller {
     public void addGraph()
     {
         //Check if graph name has been created
-        if (nameInputStrip().isEmpty()) {
+        if (!nameInputStrip().isEmpty()) {
 
+            //Find where the new graph's index will be
+            while (seriesIndex < seriesList.size())
+                seriesIndex++;
+
+            addPoint();
+        } else {
             infoBox("A graph name needs to be entered in the bottom bar.", "Error Found!", null);
             return;
-
         }
 
-        btn_Add.setDisable(false);
-
-        //Find where the new graph's index will be
-        while (seriesIndex < seriesList.size())
-            seriesIndex++;
-
-        addPoint();
 
     }
 
@@ -322,6 +340,7 @@ public class Controller {
     public void pickGraph()
     {
         int graphIndex = graphList.getSelectionModel().getSelectedIndex();
+        btn_Rename.setDisable(false);
 
         if (graphIndex < seriesList.size())
         {
@@ -331,7 +350,6 @@ public class Controller {
 
     private void selectGraphInList()
     {
-
         //Don't select it if it doesn't exist
         if (seriesIndex >= graphList.getItems().size()) return;
 
@@ -355,6 +373,11 @@ public class Controller {
         lineChart.getData().remove(graphIndex);
 
         graphList.getItems().remove(graphIndex);
+
+        if (graphList.getItems().isEmpty()) {
+            btn_Rename.setDisable(true);
+            btn_Remove.setDisable(true);
+        }
 
 
         seriesIndex = 0;
@@ -387,15 +410,14 @@ public class Controller {
     }
     public void renameGraph()
     {
+
         int graphIndex = graphList.getSelectionModel().getSelectedIndex();
+
+        if (graphIndex >= graphList.getItems().size() || graphIndex < 0) return;
 
         //this separates equation name by ":" into a list so you can know if it's an equation graph
         //Fixed the bug where if someone enters ":" into nameInput then it wouldn't split right- nameInputStrip()
         String[] equationName = graphList.getSelectionModel().getSelectedItem().toString().split(":");
-
-        if (graphIndex >= graphList.getItems().size() || graphIndex < 0) return;
-
-
         //Read name field
         String  newName = nameInputStrip();
 
