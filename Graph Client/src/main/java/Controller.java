@@ -53,6 +53,7 @@ public class Controller extends Thread{
     @FXML Button btn_DOWN;
     @FXML Button btn_LEFT;
     @FXML Button btn_RIGHT;
+	
 
     //Series = one line graph
     private ObservableList<Series<Float, Float>> seriesList;
@@ -66,7 +67,8 @@ public class Controller extends Thread{
 	
 	
 	
-	//Networking commands
+	//Networking variables
+	@FXML btn_Connect;
 	private boolean connectedToServer = false;
 	Socket socket;
 	PrintWriter out;	
@@ -500,7 +502,7 @@ public class Controller extends Thread{
     }
 	
 	
-	//Network starts here
+	//Network starts here//
 	public void serverConnect(){
 		 try {
 			 String ip = ipInput.getText();
@@ -511,6 +513,9 @@ public class Controller extends Thread{
                     socket = new Socket(ip, 8888);   
 					connectedToServer = true;
 					this.start();
+					
+					//Don't let client connect multiple times
+					btn_Connect.setDisable(true);
 					  
                 }catch (IOException e){
                     System.out.println("IOException");
@@ -519,9 +524,7 @@ public class Controller extends Thread{
                 }
 	}
 	
-	public void run(){
-		
-		
+	public void run(){		
 		try{
 		out = new PrintWriter(socket.getOutputStream());
 		InputStream in = socket.getInputStream();
@@ -529,11 +532,13 @@ public class Controller extends Thread{
 		String line = null;
 		
 		while(true){
+			//Wait for command
 			if ((line = bin.readLine()) != null){
 				System.out.println(line);
 				
 				String[] command = line.split(" ");
 				
+				//First line in command is the code. Everything else is parameters
 				if(command[0].contains("ADD")){
 					 btn_Add.setDisable(false);
 					N_addPoint(Integer.parseInt(command[1]), Float.parseFloat(command[2]), Float.parseFloat(command[3]),command[4]);

@@ -42,7 +42,8 @@ class ConnectionHandler extends Thread{
           InputStreamReader creader = new InputStreamReader(cin);
           BufferedReader cbin = new BufferedReader(creader);
 		  while(true){
-          String cline = null;		  
+          String cline = null;
+				//Client will only send commands. Send to other clients once received		  
 				if ((cline = cbin.readLine()) != null) {
 					System.out.println(cline);
 					Main.sendMessage(clientSocket, cline);
@@ -73,6 +74,7 @@ public class Main{
 
                 clientSocket = serverSocket.accept();
                 if(clientSocket != null){
+					//Add client to the list once connected
 					ConnectionHandler ch = new ConnectionHandler(clientSocket);	
 					clientHandlers.add(ch);					
 					ch.start();
@@ -89,6 +91,7 @@ public class Main{
 	
 	public static void sendMessage(Socket sender, String msg){
 		for(ConnectionHandler c: clientHandlers){
+			//Don't send command back to sender
 			if(c.clientSocket != sender){
 					c.out.println(msg);
 					c.out.flush();
