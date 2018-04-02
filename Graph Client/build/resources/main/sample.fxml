@@ -153,6 +153,23 @@
                     </children>
                 </GridPane>
 
+				 <GridPane GridPane.columnIndex="0" GridPane.rowIndex="6">
+                    <columnConstraints>
+                        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="100.0" />
+                    </columnConstraints>
+                    <rowConstraints>
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+                    </rowConstraints>
+                    <children>
+                        <Button fx:id="btn_Connect" mnemonicParsing="false" onAction="#serverConnect" text="Connect to Server:" />
+						<TextField fx:id="ipInput" layoutX="260.0" layoutY="50.0" promptText="IP Address" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+                        
+                 
+                    </children>
+                </GridPane>
             </children>
         </GridPane>
 
