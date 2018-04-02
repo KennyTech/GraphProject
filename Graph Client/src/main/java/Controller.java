@@ -68,7 +68,7 @@ public class Controller extends Thread{
 	
 	
 	//Networking variables
-	@FXML btn_Connect;
+	@FXML Button btn_Connect;
 	private boolean connectedToServer = false;
 	Socket socket;
 	PrintWriter out;	
