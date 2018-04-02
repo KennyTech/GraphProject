@@ -16,6 +16,7 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
 import javafx.scene.input.MouseEvent;
+
 import javafx.stage.Stage;
 
 import java.awt.Component;
@@ -29,6 +30,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 
+import java.io.*;
+import java.net.*;
+import javafx.application.Platform;
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+
 import javafx.scene.control.Alert.AlertType;
 
 import javafx.util.Duration;
@@ -39,9 +47,14 @@ import org.gillius.jfxutils.chart.JFXChartUtil;
 
 import javax.swing.JFileChooser;
 import javax.xml.soap.Text;
+import javax.xml.soap.Text;
 
 
-public class Controller {
+
+
+
+public class Controller extends Thread{
+
 
     @FXML LineChart<Float, Float> lineChart;
     @FXML ListView graphList;
@@ -49,13 +62,21 @@ public class Controller {
     @FXML private NumberAxis xAxis, yAxis ;
     @FXML Button btn_Add, btn_Remove, btn_Rename, btn_UP, btn_DOWN, btn_LEFT, btn_RIGHT;
 
-    //Series = one line graph
+	@FXML TextField ipInput;
+   //Series = one line graph
     private ObservableList<Series<Float, Float>> seriesList;
 
     private int seriesIndex = -1, xAxisUpperBound = 25, xAxisLowerBound = -25,
             yAxisUpperBound = 25, yAxisLowerBound = -25;
     private final int traverseRate = 5;
 
+
+	
+	//Networking variables
+	@FXML Button btn_Connect;
+	private boolean connectedToServer = false;
+	Socket socket;
+	PrintWriter out;
 
     public void initialize() {
 
@@ -225,10 +246,16 @@ public class Controller {
             graphList.getItems().add(series.getName());
 
             selectGraphInList();
-            
+
             // Update title to signify file changed by appending "*" if graphChange is true (ie. this function was called from button, not from open file)
             if (graphChange)
             	updateTitle(filename, true);
+
+			if(connectedToServer){
+				
+			out.println("ADQ " + equationInput.getText()); 
+			out.flush();
+			}
         }
 
 
@@ -243,10 +270,12 @@ public class Controller {
 
     //Add a point onto a graph (series). Button can't be clicked until Add Graph is pressed
     public void addPoint() {
+
     	
         // Update title to signify file changed by appending "*" if graphChange is true (ie. this function was called from button, not from open file)
         if (graphChange)
         	updateTitle(filename, true);
+
 
         //Make input use numbers only
         xInput.setText(filterLetters(xInput.getText()));
@@ -286,6 +315,7 @@ public class Controller {
         setGraphName(series, null);
 
 
+
         if (series.getData().add(new Data<Float, Float>(newX, newY))) {
 
 
@@ -301,14 +331,29 @@ public class Controller {
 
                 graphList.getItems().add(series.getName());
                 selectGraphInList();
+
+				
+				if(connectedToServer){
+					out.println("ADD " + seriesIndex + " " + newX + " " + newY + " " + series.getName()); 
+					out.flush();
+				}
+
             }
             else {  //Otherwise change the old one
 
                 seriesList.set(seriesIndex, series);
                 System.out.println("Modified graph");
 
+
             }
 
+
+				
+				if(connectedToServer){
+					out.println("ADP " + seriesIndex + " " + newX + " " + newY); 
+					out.flush();
+				}
+            }
 
             //On click for selecting a graph to be edited (Seems to only work when clicking on a line and not a single node)
             series.getNode().setOnMouseClicked(new EventHandler<MouseEvent>() {
@@ -333,7 +378,7 @@ public class Controller {
                 }
             });
         }
-    }
+
 
     //Add a new graph using the input fields
     public void addGraph()
@@ -351,6 +396,14 @@ public class Controller {
             return;
         }
 
+
+        btn_Add.setDisable(false);
+
+        //Find where the new graph's index will be
+        while (seriesIndex < seriesList.size())
+            seriesIndex++;
+
+        addPoint();
 
     }
 
@@ -402,11 +455,15 @@ public class Controller {
 
         seriesIndex = 0;
         selectGraphInList();
-        
+
         // Update title to signify file changed by appending "*" if graphChange is true (ie. this function was called from button, not from open file)
         if (graphChange)
         	updateTitle(filename, true);
-        
+
+		if(connectedToServer){
+		out.println("REM " + graphIndex); 
+		out.flush();
+		}
     }
 
     //YOU CAN PLAY AROUND WITH THESE TWO METHODS TO STORE EQUATION NAME IN A CSV FILE
@@ -453,6 +510,11 @@ public class Controller {
         seriesList.get(graphIndex).setName(Integer.toString(graphIndex + 1) + ": " +
                 newName + printEquationName(equationName));
 
+		
+		if(connectedToServer){
+		out.println("REN " + graphIndex + " " + newName); 
+		out.flush();
+		}
     }
 
     //Duplicate selected graph in list. Doesn't work properly because javafx throws an error whenever the same series is created. Might just remove this...
@@ -486,6 +548,10 @@ public class Controller {
         graphList.getItems().add(series.getName());
         selectGraphInList();
 
+		if(connectedToServer){
+		out.println("DUP " + graphIndex); 
+		out.flush();
+		}
 
     }
 
@@ -508,6 +574,7 @@ public class Controller {
 
         return text;
     }
+
     
     
     // =========================
@@ -738,4 +805,237 @@ public class Controller {
     
 
 
+
+	
+	
+	//Network starts here//
+	public void serverConnect(){
+		 try {
+			 String ip = ipInput.getText();
+			 System.out.println(ip);
+			 if(ip == null)
+				 ip = "127.0.0.1";
+                    //Connect to server
+                    socket = new Socket(ip, 8888);   
+					connectedToServer = true;
+					this.start();
+					
+					//Don't let client connect multiple times
+					btn_Connect.setDisable(true);
+					  
+                }catch (IOException e){
+                    System.out.println("IOException");
+                    e.printStackTrace();
+					
+                }
+	}
+	
+	public void run(){		
+		try{
+		out = new PrintWriter(socket.getOutputStream());
+		InputStream in = socket.getInputStream();
+		BufferedReader bin = new BufferedReader(new InputStreamReader(in));
+		String line = null;
+		
+		while(true){
+			//Wait for command
+			if ((line = bin.readLine()) != null){
+				System.out.println(line);
+				
+				String[] command = line.split(" ");
+				
+				//First line in command is the code. Everything else is parameters
+				if(command[0].contains("ADD")){
+					 btn_Add.setDisable(false);
+					N_addPoint(Integer.parseInt(command[1]), Float.parseFloat(command[2]), Float.parseFloat(command[3]),command[4]);
+				}
+				else if(command[0].contains("ADP")){
+					N_addPoint(Integer.parseInt(command[1]), Float.parseFloat(command[2]), Float.parseFloat(command[3]),null);
+				}
+				else if(command[0].contains("ADQ")){
+					N_addEQPoints(command[1]);
+				}
+				else if(command[0].contains("REM")){
+					N_removeGraph(Integer.parseInt(command[1]));
+				}
+				else if(command[0].contains("REN")){
+					N_renameGraph(Integer.parseInt(command[1]), command[2]);
+				}
+				else if(command[0].contains("DUP")){
+					N_duplicateGraph(Integer.parseInt(command[1]));
+				}
+			}		
+		}
+		
+		
+		}
+		catch(IOException e){
+			System.out.println("IOException");
+			connectedToServer = false;
+		}
+	}
+	
+	//These functions take inputs as arguments instead of from text boxes, but otherwise are copied from above 
+	public void N_addPoint(int index, float x, float y, String name) {
+		
+        //Check if adding a new series or changing an old one
+        boolean newSeries;
+        Series series;
+
+        if (seriesList.size() -1 < index) {
+            series = new Series<Float, Float>();
+            newSeries = true;
+        }
+        else {
+            series = seriesList.get(index);
+            newSeries = false;
+        }
+
+        //gg
+        setGraphName(series, null);
+
+		
+        if (series.getData().add(new Data<Float, Float>(x, y))) {
+
+
+            for (int i = 0; i < series.getData().size(); i++) {
+                System.out.println(series.getData().get(i));
+            }
+
+            //Add onto series list if it's a new one
+            if (newSeries) {
+                seriesList.add(series);
+				
+				Platform.runLater(new Runnable(){
+					@Override public void run(){
+						lineChart.getData().add(series);
+						 System.out.println("Added graph");
+						 graphList.getItems().add(name);	
+               
+					}
+				});
+               		
+            }
+            else {  //Otherwise change the old one
+
+                seriesList.set(index, series);
+                System.out.println("Modified graph");
+            }
+        }
+    }
+	
+	public void N_addEQPoints(String eq) {
+		 
+		 
+
+        Series series = new Series<Float, Float>();
+
+
+            setGraphName(series, eq);
+            Map<Float, Float> getCoordinates = fillCoordinates(eq);
+            System.out.println(getCoordinates);
+
+            //iterate and draw graph with all points
+            getCoordinates.forEach((k,v) ->
+                    series.getData().add(new Data<Float, Float>(k, v)));
+
+            seriesList.add(series);
+           
+
+
+            //System.out.println(lineChart.);
+            //lineChart.z
+            System.out.println("Added graph");
+			
+			Platform.runLater(new Runnable(){
+					@Override public void run(){
+						 lineChart.getData().add(series);
+						 System.out.println("Added graph");
+						  graphList.getItems().add(series.getName());	
+               
+					}
+				});
+           
+        
+
+
+    }
+	
+	public void N_removeGraph(int index){
+		  
+
+        if (index >= graphList.getItems().size() || index < 0) return;
+
+        System.out.print("Removing: " +  index);
+
+
+			Platform.runLater(new Runnable(){
+					@Override public void run(){
+						  seriesList.remove( index);
+						   lineChart.getData().remove( index);
+
+        graphList.getItems().remove( index);
+					}
+			});
+      
+       
+	  }
+	  
+	public void N_renameGraph(int index, String name){
+
+        //this separates equation name by ":" into a list so you can know if it's an equation graph
+        //Fixed the bug where if someone enters ":" into nameInput then it wouldn't split right- nameInputStrip()
+		graphList.getSelectionModel().select(index);
+        String[] equationName = graphList.getSelectionModel().getSelectedItem().toString().split(":");
+
+        if (index >= graphList.getItems().size() || index < 0) return;
+
+        //Rename list item, series and graph
+      
+
+					Platform.runLater(new Runnable(){
+					@Override public void run(){
+						  graphList.getItems().set(index, Integer.toString(index+ 1) + ": " +
+                name + printEquationName(equationName));
+        seriesList.get(index).setName(Integer.toString(index + 1) + ": " +
+                name + printEquationName(equationName));
+						}
+			});
+    }
+
+	public void N_duplicateGraph(int index)
+    {
+        int graphIndex = index;
+
+        System.out.print("Duping: " + graphIndex);
+
+        if (graphIndex >= graphList.getItems().size()) return;
+
+
+
+        Series series = new Series();
+
+
+        series.getData().add(new Data<Float, Float>(0.0f,0.0f));
+
+        series.getData().addAll(seriesList.get(graphIndex).getData());
+
+
+        series.setName(graphList.getItems().get(graphIndex) + " (Copy)");
+
+        seriesIndex=graphIndex + 1;
+
+
+		Platform.runLater(new Runnable(){
+					@Override public void run(){
+						   seriesList.add(series);
+					}
+			});
+       
+        lineChart.getData().add(series);
+        System.out.println("Added graph");
+
+        graphList.getItems().add(series.getName());
+
+    }
 }
