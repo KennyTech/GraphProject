@@ -35,7 +35,7 @@ class ConnectionHandler extends Thread{
 			
 			String line = Integer.toString(Main.connectedClients.size());
 			out.println(line);
-			System.out.println("Line Sent");
+			System.out.println("Client Connected");
 			out.flush(); 			
 			
           InputStream cin = clientSocket.getInputStream();
@@ -51,8 +51,13 @@ class ConnectionHandler extends Thread{
 			
 		  }
 		}catch(IOException e){
-			e.printStackTrace();
+			System.out.println("Client Disconnected");
+			Main.clientHandlers.remove(this);
+			if(Main.clientHandlers.size() <= 0)
+				System.exit(0);
 		}
+		
+		
 	}
 }
 public class Main{
@@ -62,7 +67,7 @@ public class Main{
 	public static ArrayList<Socket> connectedClients = new ArrayList<>();
 	public static ObservableList<Series<Float, Float>> seriesList;
 	
-	private static ArrayList<ConnectionHandler> clientHandlers = new ArrayList<>();
+	public static ArrayList<ConnectionHandler> clientHandlers = new ArrayList<>();
     public static void main(String [] args) {
         try {
             serverSocket = new ServerSocket(8888);

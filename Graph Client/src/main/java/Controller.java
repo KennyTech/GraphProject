@@ -399,12 +399,6 @@ public class Controller extends Thread{
 
         btn_Add.setDisable(false);
 
-        //Find where the new graph's index will be
-        while (seriesIndex < seriesList.size())
-            seriesIndex++;
-
-        addPoint();
-
     }
 
 
@@ -799,8 +793,10 @@ public class Controller extends Thread{
     // ==========
     public void exitProgram() {
     	System.out.println("Exiting Grapher...");
-    	Stage primaryStage = (Stage) lineChart.getScene().getWindow();   
+    	Stage primaryStage = (Stage) lineChart.getScene().getWindow();
+		connectedToServer = false;
     	primaryStage.close();
+		System.exit(0);
     }
     
 
@@ -837,7 +833,7 @@ public class Controller extends Thread{
 		BufferedReader bin = new BufferedReader(new InputStreamReader(in));
 		String line = null;
 		
-		while(true){
+		while(connectedToServer){
 			//Wait for command
 			if ((line = bin.readLine()) != null){
 				System.out.println(line);
@@ -866,6 +862,11 @@ public class Controller extends Thread{
 				}
 			}		
 		}
+		
+		out.close();
+		in.close();
+		socket.close();
+		bin.close();
 		
 		
 		}
