@@ -47,13 +47,6 @@ public class Controller extends Thread{
 	@FXML TextField ipInput;
 
 
-    @FXML Button btn_Add;
-    @FXML Button btn_UP;
-    @FXML Button btn_DOWN;
-    @FXML Button btn_LEFT;
-    @FXML Button btn_RIGHT;
-	
-
     //Series = one line graph
     private ObservableList<Series<Float, Float>> seriesList;
 
@@ -367,9 +360,7 @@ public class Controller extends Thread{
             return;
         }
 
-<<<<<<< HEAD:src/main/java/Controller.java
 
-=======
         btn_Add.setDisable(false);
 
         //Find where the new graph's index will be
@@ -377,9 +368,7 @@ public class Controller extends Thread{
             seriesIndex++;
 
         addPoint();
-		
-		
->>>>>>> master:Graph Client/src/main/java/Controller.java
+
     }
 
 
