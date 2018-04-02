@@ -1,0 +1,25 @@
+ListView{
+    -fx-background-color:linear-gradient(#fcf2dc,#e9ab18);
+    -fx-font-size: 12px;
+    -fx-font-family: "Comic Sans MS";
+}
+MenuBar{-fx-background-color:linear-gradient(#fcf2dc,#e9ab18);}
+
+#btn_UP {
+    -fx-background-image: url('top_image.png');
+    -fx-background-size: 28px;
+    -fx-background-position: center;
+}
+#btn_DOWN {
+    -fx-background-image: url('down_image.png');
+    -fx-background-size: 24px;
+}
+#btn_RIGHT{
+    -fx-background-image: url('right_image.png');
+    -fx-background-size: 23px;
+}
+#btn_LEFT{
+    -fx-background-image: url('left_image.png');
+    -fx-background-size: 21px;
+}
+.button {-fx-background-position: center;}
