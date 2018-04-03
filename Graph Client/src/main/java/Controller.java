@@ -28,6 +28,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,9 +37,6 @@ import java.util.Scanner;
 import java.io.*;
 import java.net.*;
 import javafx.application.Platform;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
 
 import javafx.scene.control.Alert.AlertType;
 
@@ -50,7 +48,6 @@ import org.gillius.jfxutils.chart.JFXChartUtil;
 
 import javax.imageio.ImageIO;
 import javax.swing.JFileChooser;
-import javax.xml.soap.Text;
 import javax.xml.soap.Text;
 
 
@@ -277,12 +274,10 @@ public class Controller extends Thread{
 
     //Add a point onto a graph (series). Button can't be clicked until Add Graph is pressed
     public void addPoint() {
-
-    	
+ 	
         // Update title to signify file changed by appending "*" if graphChange is true (ie. this function was called from button, not from open file)
         if (graphChange)
         	updateTitle(filename, true);
-
 
         //Make input use numbers only
         xInput.setText(filterLetters(xInput.getText()));
@@ -362,6 +357,28 @@ public class Controller extends Thread{
 				}
             }
 
+	        // === For save/open ===  
+	        // Fix name first
+	        String splitFix = (String) series.getName();
+			// Split with ":" delimiter
+			String secondPart[] = splitFix.split(":");
+			// Get second part of split
+			String nameFix = secondPart[secondPart.length - 1];
+			// Append ALL points from all graphs for save/open
+			//toAppend = toAppend + seriesIndex + "," + nameFix + "," + xInput.getText() + "," + yInput.getText() + "\n";
+			toAppend = seriesIndex + "," + nameFix + "," + xInput.getText() + "," + yInput.getText() + "\n";
+	        
+	        // ArrayList method (to sort)
+			if (appendList.isEmpty()) {
+				appendList.add("-POINT DATA-\n");
+			}
+			// sort data by index, allowing out-of-order editing of graphs and points to be saved and opened correctly
+	        appendList.add(toAppend);
+	        Collections.sort(appendList);
+	        for(int i=0; i<appendList.size(); i++)
+	            System.out.println(appendList.get(i));
+	        // === end save/open ===
+        
             //On click for selecting a graph to be edited (Seems to only work when clicking on a line and not a single node)
             series.getNode().setOnMouseClicked(new EventHandler<MouseEvent>() {
                 @Override
@@ -582,10 +599,14 @@ public class Controller extends Thread{
     // =========================
     // Graph save/open variables
     // =========================
-    private List<String> graphEquations = new ArrayList<String>();	// save all graph expressions for save/open in a dynamic ArrayList
-    private List<String> graphNames 	= new ArrayList<String>();	// save all graph names for save/open in a dynamic ArrayList
-    private String filename 			= "";						// file name of file being edited
-    private boolean graphChange 		= true;						// graph changed, for appending title with "*" to signify file change
+    private List<String> graphEquations 		= new ArrayList<String>();	// save all graph expressions for save/open in a dynamic ArrayList
+    private List<String> graphNames 			= new ArrayList<String>();	// save all graph names for save/open in a dynamic ArrayList
+    private String filename 					= "";						// file name of file being edited
+    private String filepath						= "";						// check path to see if file exists to overwrite
+    private boolean graphChange 				= true;						// graph changed, for appending title with "*" to signify file change
+    private String toAppend						= "";						// appends add point data from all graphs for save/open
+    private static ArrayList<String> isNewList 	= new ArrayList<String>();	// list to check if next index is new graph or not
+    private List<String> appendList				= new ArrayList<String>();	// append data in a string for add point method and sort to allow out-of-order editing
     
     // ========================================
     // update title function (include filename)
@@ -614,13 +635,46 @@ public class Controller extends Thread{
     		// convert and fill the array
     		graphEquations.toArray(expressionList);
     		
+    		// create a new string array with the same size as the dynamic ArrayList
+    		String[] nameList = new String[graphNames.size()];
+    		// convert and fill the array
+    		graphNames.toArray(nameList);
+    		
+    		// if file already exists, delete and recreate it
+        	File f = new File(filepath);
+        	if (f.exists()) {
+        		if (f.delete()) {
+        			System.out.println(f.getName() + " was overwritten.");
+        		} else {
+        			System.out.println("Overwrite failed. Make sure file is not open somewhere else.");
+        		}
+        	}
+    		
+    		// iterate through graph expressions and write to file
         	try (PrintWriter out = new PrintWriter(filename)) {
-        		System.out.println("Saved to " + filename);
-    	    	for (int i = 0; i < expressionList.length; i++) {
-    	    		out.println(expressionList[i]);
+        		
+        		StringBuilder sb = new StringBuilder();     	              
+        	    // data fields (name, equation)
+    	    	for (int i = 0; i < expressionList.length; i++) {   	    
+    	    		//setGraphName(series, equationInput.getText());
+        	        sb.append(nameList[i]);
+        	        sb.append(',');
+        	        sb.append(expressionList[i]);
+        	        sb.append('\n');
     	    	}
+    	    	
+    	    	// save points (data field: x, y)
+    	    	for (int i = 0; i < appendList.size(); i++) {   	   
+        	        sb.append(appendList.get(i));
+    	    	}
+    	    	
+    	    	// Save to file
+    	    	out.print(sb.toString());
+    	    	out.flush();
+    	    	out.close();
+    	    	
     	    	// change title to reflect filename
-    	    	updateTitle(filename, false);
+    	        updateTitle(filename, false);    	    	
         	}
     	}  	
     }
@@ -629,9 +683,12 @@ public class Controller extends Thread{
     // Save as graph to file
     // =====================
     public void saveAsGraph() throws FileNotFoundException {
-    	
+    		
     	System.out.println("Saving As...");
-
+    	
+    	// make new save sub-directory if nonexistent
+    	new File("./saves").mkdirs();
+    	
 		// create a new string array with the same size as the dynamic ArrayList
 		String[] expressionList = new String[graphEquations.size()];
 		// convert and fill the array
@@ -641,7 +698,7 @@ public class Controller extends Thread{
 		String[] nameList = new String[graphNames.size()];
 		// convert and fill the array
 		graphNames.toArray(nameList);
-    	
+ 	
 		// prompt user to save file name/directory
         String extension = saveHelper("csv");
     		// iterate through graph expressions and write to file
@@ -657,8 +714,15 @@ public class Controller extends Thread{
         	        sb.append('\n');
     	    	}
     	    	
+    	    	// save points (data field: x, y)
+    	    	for (int i = 0; i < appendList.size(); i++) {   	    
+        	        sb.append(appendList.get(i));
+    	    	}
+    	    	
     	    	// Save to file
     	    	out.print(sb.toString());
+    	    	out.flush();
+    	    	out.close();
     	    	
     	    	// change title to reflect filename
     	        filename = extension;
@@ -694,6 +758,16 @@ public class Controller extends Thread{
 
             String savePath = chooser.getSelectedFile().getAbsolutePath();
             Boolean alreadyTextExtension = false;
+            
+            // if file already exists, delete and recreate it
+        	File f = chooser.getSelectedFile();
+        	if (f.exists()) {
+        		if (f.delete()) {
+        			System.out.println(f.getName() + " was overwritten.");
+        		} else {
+        			System.out.println("Overwrite failed. Make sure file is not open somewhere else.");
+        		}
+        	}
 
             // get extension to make sure file does not save as duplicate extension ("file.csv.csv")
             if (savePath.length() > 3)
@@ -713,6 +787,7 @@ public class Controller extends Thread{
         }
         return chooser.getSelectedFile()+extension;
     }
+    
     // =================
     // Open a graph file
     // =================
@@ -722,7 +797,7 @@ public class Controller extends Thread{
 		// prompt user to open a save file
         JFileChooser chooser = new JFileChooser();
         chooser.setCurrentDirectory(new File("./saves"));
-        int retrival = chooser.showOpenDialog(null);
+        int retrival = chooser.showSaveDialog(null);
         if (retrival == JFileChooser.APPROVE_OPTION) {
         	// successfully loaded, start a new graph before loading
         	newGraph();
@@ -736,16 +811,44 @@ public class Controller extends Thread{
         	ArrayList<String> eqList = new ArrayList<String>();		// equation list
         	ArrayList<String> nameList = new ArrayList<String>();	// name list
         	
+        	boolean pointData = false;
+        	String graphIndex = "";
         	// iterate and separate column values
 	    	while (scan.hasNextLine()){
 	    		String line = scan.nextLine();
-	    		String[] split = line.split(",");
 	    		
-	    		eqList.add(split[1]);
-	    		nameList.add(split[0]);
+	    		if (line.equals("-POINT DATA-")) {
+	    			System.out.println("Found 'add point' method data");
+	    			if (scan.hasNextLine()) {
+	    				line = scan.nextLine();
+	    				pointData = true;
+	    			}
+	    		}
+	    		
+	    		if (pointData) {
+	    			String[] split = line.split(",");
+	    			// plot and graph point data now--more efficient now than later due to format of setup	    			
+	    			graphIndex = (split[0]);
+    				nameInput.setText(split[1]);
+	    			xInput.setText(split[2]);
+	    			yInput.setText(split[3]);
+	    			// if the index is new, we create a new graph
+	    			if (isNew(graphIndex)) {
+	    				addGraph();
+	    			}
+    				addPoint();
+	    			// end plot
+	    		}
+	    		else {
+	    			// Prepare expression and graph name data to loop through and plot after
+		    		String[] split = line.split(",");	    		
+		    		eqList.add(split[1]);
+		    		nameList.add(split[0]);
+	    		}
 	    	}
 	    	scan.close();
     	
+	    	
 	    	// loop through all graph names and equations
 	    	for (int i = 0; i < eqList.size(); i++) {
 	    		
@@ -791,11 +894,7 @@ public class Controller extends Thread{
     	// iterate through all current graphs and remove
     	for (int i = 0; i < graphIndex; i++) {
 	
-	        //if (graphIndex >= graphList.getItems().size() || graphIndex < 0) return;
-	
-	        System.out.print("Removing: " + 0);
-	
-	        seriesList.remove(0);
+    		seriesList.remove(0);
 	        lineChart.getData().remove(0);
 	        graphList.getItems().remove(0);
 	
@@ -805,15 +904,29 @@ public class Controller extends Thread{
 	        }
 	
 	        seriesIndex = 0;
-	        //selectGraphInList(); 	
     	}   
     	
     	// Update filename in title
     	updateTitle("New", false); 
     	
-    	// Clear list
-    	graphEquations.clear();
+    	// Clear any previous lists and reset string
+    	toAppend = "POINT DATA\n";
+    	graphEquations.clear();	
     	graphNames.clear();
+    	appendList.clear();
+    	isNewList.clear();
+    }
+    
+    
+    // ======================================================================================================================
+    // for open file, checks if index is new or not to determine if program should create a new graph before appending points
+    // ======================================================================================================================
+    public boolean isNew(String index) {
+    	if (isNewList.contains(index)) {
+    		return false;
+    	}
+    	isNewList.add(index);
+    	return true;
     }
     
     // ==========
