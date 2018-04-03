@@ -36,8 +36,9 @@
                                 <KeyCodeCombination alt="UP" code="O" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
                             </accelerator>
                         </MenuItem>
-                  <Menu mnemonicParsing="false" text="Save">
-                    <items>
+                        
+                        <Menu mnemonicParsing="false" text="Save">
+                            <items>
       
                               <MenuItem mnemonicParsing="false" onAction="#saveGraph" text="Save">
                                   <accelerator>
@@ -50,22 +51,30 @@
                                       <KeyCodeCombination alt="UP" code="S" control="DOWN" meta="UP" shift="DOWN" shortcut="UP" />
                                   </accelerator>
                               </MenuItem>
-                        <MenuItem mnemonicParsing="false" text="Save Image" onAction="#saveImage">
-                           <accelerator>
-                              <KeyCodeCombination alt="UP" code="I" control="DOWN" meta="UP" shift="DOWN" shortcut="UP" />
-                           </accelerator>
-                        </MenuItem>
-                    </items>
-                  </Menu>
+                                
+                              <MenuItem mnemonicParsing="false" text="Save Image" onAction="#saveImage">
+                                  <accelerator>
+                                      <KeyCodeCombination alt="UP" code="I" control="DOWN" meta="UP" shift="DOWN" shortcut="UP" />
+                                  </accelerator>
+                              </MenuItem>
+                                
+                            </items>                            
+                        </Menu>
 
                         <MenuItem mnemonicParsing="false" onAction="#exitProgram" text="Close">
                             <accelerator>
                                 <KeyCodeCombination alt="UP" code="X" control="DOWN" meta="UP" shift="UP" shortcut="UP" />
                             </accelerator>
                         </MenuItem>
-                    </items>
-                </Menu>
-
+                        </items>
+                        </Menu>
+                
+                        <Menu mnemonicParsing="false" text="Help">
+                        <items>
+                            <MenuItem mnemonicParsing="false" onAction="#about" text="About" />
+                        </items>
+                        </Menu>
+                
             </menus>
         </MenuBar>
 
