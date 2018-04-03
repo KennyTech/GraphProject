@@ -731,13 +731,13 @@ public class Controller extends Thread{
     }
     public void saveImage() throws FileNotFoundException {
         System.out.println("Saving Images As...");
-        String extension = saveHelper("jpg");
+        String extension = saveHelper("png");
         //get the image of line item and save it in a file
         WritableImage image = lineChart.snapshot(new SnapshotParameters(), null);
         File file = new File(extension);
 
         try {
-            ImageIO.write(SwingFXUtils.fromFXImage(image, null), "jpg", file);
+            ImageIO.write(SwingFXUtils.fromFXImage(image, null), "png", file);
         } catch (IOException e) {
             e.printStackTrace();
         }
