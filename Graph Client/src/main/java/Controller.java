@@ -4,14 +4,17 @@ import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.embed.swing.SwingFXUtils;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
+import javafx.scene.SnapshotParameters;
 import javafx.scene.chart.LineChart;
 import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart.Data;
 import javafx.scene.chart.XYChart.Series;
 import javafx.scene.control.*;
+import javafx.scene.image.WritableImage;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
@@ -45,6 +48,7 @@ import net.objecthunter.exp4j.Expression;
 
 import org.gillius.jfxutils.chart.JFXChartUtil;
 
+import javax.imageio.ImageIO;
 import javax.swing.JFileChooser;
 import javax.xml.soap.Text;
 import javax.xml.soap.Text;
@@ -221,44 +225,47 @@ public class Controller extends Thread{
         if (isEmpty(equationInput)) {
             infoBox("Enter an equation to plot the appropriate graph",
                     "Error Found!", null);
-
-            return ;
+            return;
         }
+        //else if (equationInput.getText().)
         else {
-            btn_Remove.setDisable(false);
-            setGraphName(series, equationInput.getText());
-            Map<Float, Float> getCoordinates = fillCoordinates(equationInput.getText());
-            System.out.println(getCoordinates);
+            try {
+                btn_Remove.setDisable(false);
+                setGraphName(series, equationInput.getText());
+                Map<Float, Float> getCoordinates = fillCoordinates(equationInput.getText());
+                System.out.println(getCoordinates);
 
-            //iterate and draw graph with all points
-            getCoordinates.forEach((k,v) ->
-                    series.getData().add(new Data<Float, Float>(k, v)));
+                //iterate and draw graph with all points
+                getCoordinates.forEach((k, v) ->
+                        series.getData().add(new Data<Float, Float>(k, v)));
 
-            graphEquations.add(equationInput.getText());	// add to ArrayList for save/open
-            graphNames.add(nameInputStrip());				// add to ArrayList for save/open
-            seriesList.add(series);
-            lineChart.getData().add(series);
+                graphEquations.add(equationInput.getText());    // add to ArrayList for save/open
+                graphNames.add(nameInputStrip());                // add to ArrayList for save/open
+                seriesList.add(series);
+                lineChart.getData().add(series);
 
 
-            //System.out.println(lineChart.);
-            //lineChart.z
-            System.out.println("Added graph");
-            graphList.getItems().add(series.getName());
+                //System.out.println(lineChart.);
+                //lineChart.z
+                System.out.println("Added graph");
+                graphList.getItems().add(series.getName());
 
-            selectGraphInList();
+                selectGraphInList();
 
-            // Update title to signify file changed by appending "*" if graphChange is true (ie. this function was called from button, not from open file)
-            if (graphChange)
-            	updateTitle(filename, true);
+                // Update title to signify file changed by appending "*" if graphChange is true (ie. this function was called from button, not from open file)
+                if (graphChange)
+                    updateTitle(filename, true);
 
-			if(connectedToServer){
-				
-			out.println("ADQ " + equationInput.getText()); 
-			out.flush();
-			}
+                if (connectedToServer) {
+
+                    out.println("ADQ " + equationInput.getText());
+                    out.flush();
+                }
+            } catch (RuntimeException e) {
+                infoBox("Equation must be in the form, Ex: f(x) = x",
+                        "Invalid Equation Input!", null);
+            }
         }
-
-
     }
     public void plotEquation() {
         while (seriesIndex < seriesList.size())
@@ -444,6 +451,7 @@ public class Controller extends Thread{
         if (graphList.getItems().isEmpty()) {
             btn_Rename.setDisable(true);
             btn_Remove.setDisable(true);
+            btn_Add.setDisable(true);
         }
 
 
@@ -621,13 +629,9 @@ public class Controller extends Thread{
     // Save as graph to file
     // =====================
     public void saveAsGraph() throws FileNotFoundException {
-    	String extension = "";
     	
     	System.out.println("Saving As...");
-    	
-    	// make new save sub-directory if nonexistent
-    	new File("./saves").mkdirs();
-    	
+
 		// create a new string array with the same size as the dynamic ArrayList
 		String[] expressionList = new String[graphEquations.size()];
 		// convert and fill the array
@@ -639,31 +643,9 @@ public class Controller extends Thread{
 		graphNames.toArray(nameList);
     	
 		// prompt user to save file name/directory
-        JFileChooser chooser = new JFileChooser();
-        chooser.setCurrentDirectory(new File("./saves"));
-        int retrival = chooser.showSaveDialog(null);
-        if (retrival == JFileChooser.APPROVE_OPTION) {
-        
-        	String savePath = chooser.getSelectedFile().getAbsolutePath();
-        	Boolean alreadyTextExtension = false;
-        	
-        	// get extension to make sure file does not save as duplicate extension ("file.csv.csv")
-			if (savePath.length() > 3)
-        		extension = savePath.substring(savePath.length() - 3); 	// get last 3 chars of filename
-        		if (extension.equals("csv")) {
-        			alreadyTextExtension = true;
-        		}    
-        		
-        	// if file already has text extension, set extension to null, otherwise set to .txt
-    		if (alreadyTextExtension) {
-    			extension = "";
-    		}
-    		else {
-    			extension = ".csv";
-    		}   		
-    		
+        String extension = saveHelper("csv");
     		// iterate through graph expressions and write to file
-        	try (PrintWriter out = new PrintWriter(chooser.getSelectedFile() + extension)) {
+        	try (PrintWriter out = new PrintWriter(extension)) {
         		
         		StringBuilder sb = new StringBuilder();     	              
         	    // data fields (name, equation)
@@ -679,12 +661,58 @@ public class Controller extends Thread{
     	    	out.print(sb.toString());
     	    	
     	    	// change title to reflect filename
-    	        filename = chooser.getSelectedFile() + extension;
+    	        filename = extension;
     	        updateTitle(filename, false);    	    	
         	}
-        }            
     }
-    
+    public void saveImage() throws FileNotFoundException {
+        System.out.println("Saving Images As...");
+        String extension = saveHelper("jpg");
+        //get the image of line item and save it in a file
+        WritableImage image = lineChart.snapshot(new SnapshotParameters(), null);
+        File file = new File(extension);
+
+        try {
+            ImageIO.write(SwingFXUtils.fromFXImage(image, null), "jpg", file);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public String saveHelper(String fileFormat) {
+        String extension = "";
+
+        // make new save sub-directory if nonexistent
+        new File("./saves").mkdirs();
+
+        // prompt user to save file name/directory
+        JFileChooser chooser = new JFileChooser();
+        chooser.setCurrentDirectory(new File("./saves"));
+        int retrival = chooser.showSaveDialog(null);
+        if (retrival == JFileChooser.APPROVE_OPTION) {
+
+            String savePath = chooser.getSelectedFile().getAbsolutePath();
+            Boolean alreadyTextExtension = false;
+
+            // get extension to make sure file does not save as duplicate extension ("file.csv.csv")
+            if (savePath.length() > 3)
+                extension = savePath.substring(savePath.length() - 3); 	// get last 3 chars of filename
+            if (extension.equals(fileFormat)) {
+                alreadyTextExtension = true;
+            }
+
+            // if file already has text extension, set extension to null, otherwise set to .txt
+            if (alreadyTextExtension) {
+                extension = "";
+            }
+            else {
+                extension = "."+fileFormat;
+            }
+
+        }
+        return chooser.getSelectedFile()+extension;
+    }
     // =================
     // Open a graph file
     // =================
@@ -694,7 +722,7 @@ public class Controller extends Thread{
 		// prompt user to open a save file
         JFileChooser chooser = new JFileChooser();
         chooser.setCurrentDirectory(new File("./saves"));
-        int retrival = chooser.showSaveDialog(null);
+        int retrival = chooser.showOpenDialog(null);
         if (retrival == JFileChooser.APPROVE_OPTION) {
         	// successfully loaded, start a new graph before loading
         	newGraph();
@@ -805,26 +833,32 @@ public class Controller extends Thread{
 	
 	
 	//Network starts here//
-	public void serverConnect(){
-		 try {
+	public void serverConnect() throws IOException {
 			 String ip = ipInput.getText();
 			 System.out.println(ip);
 			 if(ip == null)
 				 ip = "127.0.0.1";
                     //Connect to server
-                    socket = new Socket(ip, 8888);   
-					connectedToServer = true;
-					this.start();
-					
-					//Don't let client connect multiple times
-					btn_Connect.setDisable(true);
-					  
-                }catch (IOException e){
-                    System.out.println("IOException");
-                    e.printStackTrace();
-					
+                try {
+                    //if user enters random IP address then catch connection timeout
+                    socket = new Socket(ip, 8888);
+                    connectedToServer = true;
+                    this.start();
+
+                    //Don't let client connect multiple times
+                    btn_Connect.setDisable(true);
+
+                } catch (ConnectException e) {
+                    infoBox("Try leaving the IP address empty or\n" +
+                            "enter '127.0.0.1' as the IP address!",
+                            "Connection Timed Out!", "[ Server not found ]");
+                } catch (SocketException e) {
+                    infoBox("Try leaving the IP address empty or\n" +
+                                    "enter '127.0.0.1' as the IP address!",
+                            "Invalid IP address!",
+                            "[ The address you entered is not an IP adress ]");
                 }
-	}
+	    }
 	
 	public void run(){		
 		try{
