@@ -48,6 +48,8 @@ import org.gillius.jfxutils.chart.JFXChartUtil;
 
 import javax.imageio.ImageIO;
 import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
 import javax.xml.soap.Text;
 
 
@@ -938,6 +940,13 @@ public class Controller extends Thread{
 		connectedToServer = false;
     	primaryStage.close();
 		System.exit(0);
+    }
+
+    public void about() {
+    	JOptionPane.showMessageDialog(new JFrame(),
+    	"How to:\n To create a new graph, enter a graph name and an equation (ie. x^2) and press '>'\n"
+    	+ " To plot points, enter x and y and graph name and press add graph, then use add point to add more points to the graph.\n\n"
+    	+ "Controls:\n Use arrow keys to navigate the graph, scroll wheel to zoom, and click equations in the right panel to select and edit.");
     }
     
 
