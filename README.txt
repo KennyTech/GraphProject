@@ -1,9 +1,11 @@
 # GraphProject
 
+Repository URL: https://github.com/PlasmaDiffusion/GraphProject
+
+
 Contributors:
 
-
-Scott Cooper (100580683)
+Scott Cooper
 
 -Prototyped the UI
 
@@ -12,7 +14,7 @@ Scott Cooper (100580683)
 -Merged final branches together
 
 
-Jude Antony(100571023)
+Jude Antony
 
 -Built on UI design
 
@@ -22,7 +24,7 @@ Jude Antony(100571023)
 -Also included loader/splash screen prior to launching main program
 
 
-Kenny Le(100616323)
+Kenny Le
 
 -Coded file Input/Output
 
