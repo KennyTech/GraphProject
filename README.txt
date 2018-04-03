@@ -32,6 +32,9 @@ Kenny Le
 	-Saves/Opens graph data of both equations and data points as .csv or indicated extension
 	-Includes many standard program Save/Open features (filepath at menu bar, "*" shown when file was edited since last save)
 	
-		
 
+Ellivro Guevarra 
 
+-Constructed socket I/O and networking
+
+-
