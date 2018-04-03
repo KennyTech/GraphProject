@@ -797,7 +797,7 @@ public class Controller extends Thread{
 		// prompt user to open a save file
         JFileChooser chooser = new JFileChooser();
         chooser.setCurrentDirectory(new File("./saves"));
-        int retrival = chooser.showSaveDialog(null);
+        int retrival = chooser.showOpenDialog(null);
         if (retrival == JFileChooser.APPROVE_OPTION) {
         	// successfully loaded, start a new graph before loading
         	newGraph();
