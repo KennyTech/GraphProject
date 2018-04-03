@@ -372,13 +372,12 @@ public class Controller extends Thread{
 	        
 	        // ArrayList method (to sort)
 			if (appendList.isEmpty()) {
-				appendList.add("-POINT DATA-\n");
+				appendList.add("-DATA POINTS-\n");
+				appendList.add("-INDEX-, -NAME-, -X-, -Y-\n");
 			}
 			// sort data by index, allowing out-of-order editing of graphs and points to be saved and opened correctly
 	        appendList.add(toAppend);
 	        Collections.sort(appendList);
-	        for(int i=0; i<appendList.size(); i++)
-	            System.out.println(appendList.get(i));
 	        // === end save/open ===
         
             //On click for selecting a graph to be edited (Seems to only work when clicking on a line and not a single node)
@@ -655,7 +654,8 @@ public class Controller extends Thread{
     		// iterate through graph expressions and write to file
         	try (PrintWriter out = new PrintWriter(filename)) {
         		
-        		StringBuilder sb = new StringBuilder();     	              
+        		StringBuilder sb = new StringBuilder();
+			sb.append("-NAME-,-EQUATION-\n");
         	    // data fields (name, equation)
     	    	for (int i = 0; i < expressionList.length; i++) {   	    
     	    		//setGraphName(series, equationInput.getText());
@@ -706,7 +706,8 @@ public class Controller extends Thread{
     		// iterate through graph expressions and write to file
         	try (PrintWriter out = new PrintWriter(extension)) {
         		
-        		StringBuilder sb = new StringBuilder();     	              
+        		StringBuilder sb = new StringBuilder();
+			sb.append("-NAME-,-EQUATION-\n");
         	    // data fields (name, equation)
     	    	for (int i = 0; i < expressionList.length; i++) {   	    
     	    		//setGraphName(series, equationInput.getText());
@@ -818,11 +819,16 @@ public class Controller extends Thread{
         	// iterate and separate column values
 	    	while (scan.hasNextLine()){
 	    		String line = scan.nextLine();
+			
+			if (line.equals("-NAME-,-EQUATION-")) {
+	    			line = scan.nextLine();	// skip over data titles
+	    		}
 	    		
-	    		if (line.equals("-POINT DATA-")) {
+	    		if (line.equals("-DATA POINTS-")) {
 	    			System.out.println("Found 'add point' method data");
+				line = scan.nextLine();
 	    			if (scan.hasNextLine()) {
-	    				line = scan.nextLine();
+	    				line = scan.nextLine(); // skip over data titles
 	    				pointData = true;
 	    			}
 	    		}
