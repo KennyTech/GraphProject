@@ -38,3 +38,4 @@ Ellivro Guevarra
 -Constructed socket I/O and networking
 
 To run the client and server, just use gradle to build each of them. The only gradle task used for each is 'run'.
+This project used external libraries for parsing graph equations, and for zooming in and out of javafx graphs.
